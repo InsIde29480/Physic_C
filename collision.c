@@ -1,64 +1,8 @@
-#include "collision.h"
+#include "headers.h"
 
 _Rectangle *__ARRAY_RECTANGLES = NULL;
 int __RECTANGLES_COUNT = 0;
 int __RECTANGLES_CAPACITY = 0;
-
-void bouncingCube(_Rectangle *rectangle, SDL_Window *window, int speed) {
-    if (rectangle->__RIGHT == 1 && (rectangle->rect.x + rectangle->rect.w) >= SDL_GetWindowSurface(window)->w) {
-        rectangle->__RIGHT = 0;
-        rectangle->__LEFT = 1;
-    } else if (rectangle->__LEFT == 1 && rectangle->rect.x <= 0) {
-        rectangle->__LEFT = 0;
-        rectangle->__RIGHT = 1;
-    }
-
-    // Move on X axis
-    if (rectangle->__RIGHT == 1) {
-        rectangle->rect.x += speed;
-    } else if (rectangle->__LEFT == 1) {
-        rectangle->rect.x -= speed;
-    }
-
-    // Check for bouncing on Y axis
-    if (rectangle->__DOWN == 1 && (rectangle->rect.y + rectangle->rect.h) >= SDL_GetWindowSurface(window)->h) {
-        rectangle->__DOWN = 0;
-        rectangle->__UP = 1;
-    } else if (rectangle->__UP == 1 && rectangle->rect.y <= 0) {
-        rectangle->__UP = 0;
-        rectangle->__DOWN = 1;
-    }
-
-    // Move on Y axis
-    if (rectangle->__DOWN == 1) {
-        rectangle->rect.y += speed;
-    } else if (rectangle->__UP == 1) {
-        rectangle->rect.y -= speed;
-    }
-}
-
-void checkOverlapse(_Rectangle **rectangle_array) {
-    for (int i = 0; i < __RECTANGLES_COUNT; i++) {
-        for (int j = i + 1; j < __RECTANGLES_COUNT; j++) {
-            if ((*rectangle_array)[i].rect.x < ((*rectangle_array)[j].rect.x + (*rectangle_array)[j].rect.w) &&
-                ((*rectangle_array)[i].rect.x + (*rectangle_array)[i].rect.w) > (*rectangle_array)[j].rect.x &&
-                (*rectangle_array)[i].rect.y < ((*rectangle_array)[j].rect.y + (*rectangle_array)[j].rect.h) &&
-                ((*rectangle_array)[i].rect.y + (*rectangle_array)[i].rect.h) > (*rectangle_array)[j].rect.y) {
-                (*rectangle_array)[i].__DOWN = !(*rectangle_array)[i].__DOWN;
-                (*rectangle_array)[i].__UP = !(*rectangle_array)[i].__UP;
-                (*rectangle_array)[i].__LEFT = !(*rectangle_array)[i].__LEFT;
-                (*rectangle_array)[i].__RIGHT = !(*rectangle_array)[i].__RIGHT;
-
-                (*rectangle_array)[j].__DOWN = !(*rectangle_array)[j].__DOWN;
-                (*rectangle_array)[j].__UP = !(*rectangle_array)[j].__UP;
-                (*rectangle_array)[j].__LEFT = !(*rectangle_array)[j].__LEFT;
-                (*rectangle_array)[j].__RIGHT = !(*rectangle_array)[j].__RIGHT;
-            }
-        }
-    }
-}
-
-
 
 void addRectangle(_Rectangle **rectangle_array, SDL_Window *window) {
     if (__RECTANGLES_CAPACITY == 0) {
@@ -74,12 +18,50 @@ void addRectangle(_Rectangle **rectangle_array, SDL_Window *window) {
     (*rectangle_array)[__RECTANGLES_COUNT].rect.x = SDL_GetWindowSurface(window)->w / 2;
     (*rectangle_array)[__RECTANGLES_COUNT].rect.y = SDL_GetWindowSurface(window)->h / 2;
 
-    (*rectangle_array)[__RECTANGLES_COUNT].__UP = 0;
-    (*rectangle_array)[__RECTANGLES_COUNT].__DOWN = 1;
-    (*rectangle_array)[__RECTANGLES_COUNT].__LEFT = 0;
-    (*rectangle_array)[__RECTANGLES_COUNT].__RIGHT = 1;
-
-    (*rectangle_array)[__RECTANGLES_COUNT].speed = 1;
+    (*rectangle_array)[__RECTANGLES_COUNT].physic.__GRAVITY = 0.98;
+    (*rectangle_array)[__RECTANGLES_COUNT].physic.__WEIGHT = 1;
+    (*rectangle_array)[__RECTANGLES_COUNT].physic.__VELOCITY_X = 0;
+    (*rectangle_array)[__RECTANGLES_COUNT].physic.__VELOCITY_Y = 0;
+    (*rectangle_array)[__RECTANGLES_COUNT].physic.__KINETIC_ENERGY = 0;
+    (*rectangle_array)[__RECTANGLES_COUNT].physic.__DAMPING = 0.5;
 
     __RECTANGLES_COUNT += 1;
+}
+
+void calculatePosition(_Rectangle *rectangle, SDL_Window *window) {
+    calculateVelocity(&rectangle->physic);
+    rectangle->rect.y += rectangle->physic.__VELOCITY_Y * rectangle->physic.__DAMPING;
+    rectangle->rect.x += rectangle->physic.__VELOCITY_X * rectangle->physic.__DAMPING;
+    addColision(rectangle, window, rectangle->physic.__DAMPING);
+}
+
+void addColision(_Rectangle *rectangle, SDL_Window *window, float damping) {
+    float minVelocity = 1;
+    int window_width = SDL_GetWindowSurface(window)->w;
+    int window_height = SDL_GetWindowSurface(window)->h;
+
+    if ((rectangle->rect.y + rectangle->rect.h) >= window_height) {
+        rectangle->rect.y = window_height - rectangle->rect.h;
+        rectangle->physic.__VELOCITY_Y = -rectangle->physic.__VELOCITY_Y * damping;
+    }
+    if (rectangle->rect.y <= 0) {
+        rectangle->rect.y = 0;
+        rectangle->physic.__VELOCITY_Y = -rectangle->physic.__VELOCITY_Y * damping;
+    }
+    if ((rectangle->rect.x + rectangle->rect.w) >= window_width) {
+        rectangle->rect.x = window_width - rectangle->rect.w;
+        rectangle->physic.__VELOCITY_X = -rectangle->physic.__VELOCITY_X * damping;
+    }
+    if (rectangle->rect.x <= 0) {
+        rectangle->rect.x = 0;
+        rectangle->physic.__VELOCITY_X = -rectangle->physic.__VELOCITY_X * damping;
+    }
+
+    // Set velocity to zero if it falls below the minimum threshold
+    if (fabs(rectangle->physic.__VELOCITY_X) < minVelocity) {
+        rectangle->physic.__VELOCITY_X = 0;
+    }
+    if (fabs(rectangle->physic.__VELOCITY_Y) < minVelocity) {
+        rectangle->physic.__VELOCITY_Y = 0;
+    }
 }

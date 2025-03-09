@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = $(shell sdl2-config --cflags) -Wall -Wextra -g
-LDFLAGS = $(shell sdl2-config --libs)
+LDFLAGS = $(shell sdl2-config --libs) -lSDL2_ttf
 
 # Define the output target (your executable name)
 TARGET = Physic
