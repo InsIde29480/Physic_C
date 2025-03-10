@@ -1,10 +1,10 @@
 #include "headers.h"
 
-int calculateVelocity(_Physic *physic) {
+void calculateVelocity(_Physic *physic) {
     // Apply gravity
     physic->__VELOCITY_Y += physic->__GRAVITY * physic->__WEIGHT;
 
-    return 0;
+    physic->__KINETIC_ENERGY = calculate_kinetic_energy(physic);
 }
 
 float calculate_kinetic_energy(_Physic *physic) {

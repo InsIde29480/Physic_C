@@ -4,64 +4,65 @@ _Rectangle *__ARRAY_RECTANGLES = NULL;
 int __RECTANGLES_COUNT = 0;
 int __RECTANGLES_CAPACITY = 0;
 
-void addRectangle(_Rectangle **rectangle_array, SDL_Window *window) {
+void addRectangle(SDL_Window *window) {
     if (__RECTANGLES_CAPACITY == 0) {
-        *rectangle_array = (_Rectangle*) malloc(1 * sizeof(_Rectangle));
         __RECTANGLES_CAPACITY = 1;
+        __ARRAY_RECTANGLES = (_Rectangle*) malloc(__RECTANGLES_CAPACITY * sizeof(_Rectangle));
     } else if (__RECTANGLES_COUNT == __RECTANGLES_CAPACITY) {
         __RECTANGLES_CAPACITY *= 2;
-        *rectangle_array = (_Rectangle*) realloc(*rectangle_array, __RECTANGLES_CAPACITY * sizeof(_Rectangle));
+        _Rectangle *temp = realloc(__ARRAY_RECTANGLES, __RECTANGLES_CAPACITY * sizeof(_Rectangle));
+        if (!temp) {
+            return; // Handle memory allocation failure
+        }
+        __ARRAY_RECTANGLES = temp;
     }
 
-    (*rectangle_array)[__RECTANGLES_COUNT].rect.h = 40;
-    (*rectangle_array)[__RECTANGLES_COUNT].rect.w = 40;
-    (*rectangle_array)[__RECTANGLES_COUNT].rect.x = SDL_GetWindowSurface(window)->w / 2;
-    (*rectangle_array)[__RECTANGLES_COUNT].rect.y = SDL_GetWindowSurface(window)->h / 2;
+    SDL_Surface *surface = SDL_GetWindowSurface(window);
 
-    (*rectangle_array)[__RECTANGLES_COUNT].physic.__GRAVITY = 0.98;
-    (*rectangle_array)[__RECTANGLES_COUNT].physic.__WEIGHT = 1;
-    (*rectangle_array)[__RECTANGLES_COUNT].physic.__VELOCITY_X = 0;
-    (*rectangle_array)[__RECTANGLES_COUNT].physic.__VELOCITY_Y = 0;
-    (*rectangle_array)[__RECTANGLES_COUNT].physic.__KINETIC_ENERGY = 0;
-    (*rectangle_array)[__RECTANGLES_COUNT].physic.__DAMPING = 0.5;
+    _Rectangle *rect = &__ARRAY_RECTANGLES[__RECTANGLES_COUNT];
+    rect->rect = (SDL_Rect){ surface->w / 2, surface->h / 2, 40, 40 };
+    
+    rect->physic = (_Physic){ .__GRAVITY = 0.98, .__WEIGHT = 2, .__VELOCITY_X = 0.0, 
+                              .__VELOCITY_Y = 0.0, .__KINETIC_ENERGY = 0.0, .__DAMPING = 0.8, 
+                              .__FRICTION = 0.01 };
 
-    __RECTANGLES_COUNT += 1;
+    __RECTANGLES_COUNT++;
+}
+
+void addCollision(_Rectangle *rectangle, SDL_Window *window)
+{
+    SDL_Surface *surface = SDL_GetWindowSurface(window);
+    int max_x = surface->w - rectangle->rect.w;
+    int max_y = surface->h - rectangle->rect.h;
+
+    // Handle collision on X-axis
+    if (rectangle->rect.x < 0)
+    {
+        rectangle->rect.x = 0;
+        rectangle->physic.__VELOCITY_X *= -rectangle->physic.__DAMPING;
+    }
+    else if (rectangle->rect.x > max_x)
+    {
+        rectangle->rect.x = max_x;
+        rectangle->physic.__VELOCITY_X *= -rectangle->physic.__DAMPING;
+    }
+
+    // Handle collision on Y-axis
+    if (rectangle->rect.y < 0)
+    {
+        rectangle->rect.y = 0;
+        rectangle->physic.__VELOCITY_Y *= -rectangle->physic.__DAMPING;
+    }
+    else if (rectangle->rect.y > max_y)
+    {
+        rectangle->rect.y = max_y;
+        rectangle->physic.__VELOCITY_Y *= -rectangle->physic.__DAMPING;
+    }
 }
 
 void calculatePosition(_Rectangle *rectangle, SDL_Window *window) {
     calculateVelocity(&rectangle->physic);
-    rectangle->rect.y += rectangle->physic.__VELOCITY_Y * rectangle->physic.__DAMPING;
-    rectangle->rect.x += rectangle->physic.__VELOCITY_X * rectangle->physic.__DAMPING;
-    addColision(rectangle, window, rectangle->physic.__DAMPING);
-}
-
-void addColision(_Rectangle *rectangle, SDL_Window *window, float damping) {
-    float minVelocity = 1;
-    int window_width = SDL_GetWindowSurface(window)->w;
-    int window_height = SDL_GetWindowSurface(window)->h;
-
-    if ((rectangle->rect.y + rectangle->rect.h) >= window_height) {
-        rectangle->rect.y = window_height - rectangle->rect.h;
-        rectangle->physic.__VELOCITY_Y = -rectangle->physic.__VELOCITY_Y * damping;
-    }
-    if (rectangle->rect.y <= 0) {
-        rectangle->rect.y = 0;
-        rectangle->physic.__VELOCITY_Y = -rectangle->physic.__VELOCITY_Y * damping;
-    }
-    if ((rectangle->rect.x + rectangle->rect.w) >= window_width) {
-        rectangle->rect.x = window_width - rectangle->rect.w;
-        rectangle->physic.__VELOCITY_X = -rectangle->physic.__VELOCITY_X * damping;
-    }
-    if (rectangle->rect.x <= 0) {
-        rectangle->rect.x = 0;
-        rectangle->physic.__VELOCITY_X = -rectangle->physic.__VELOCITY_X * damping;
-    }
-
-    // Set velocity to zero if it falls below the minimum threshold
-    if (fabs(rectangle->physic.__VELOCITY_X) < minVelocity) {
-        rectangle->physic.__VELOCITY_X = 0;
-    }
-    if (fabs(rectangle->physic.__VELOCITY_Y) < minVelocity) {
-        rectangle->physic.__VELOCITY_Y = 0;
-    }
+    rectangle->rect.x += (int)rectangle->physic.__VELOCITY_X;
+    rectangle->rect.y += (int)rectangle->physic.__VELOCITY_Y;
+    addCollision(rectangle, window);
 }

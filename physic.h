@@ -11,9 +11,10 @@ typedef struct
     float __GRAVITY;
     float __KINETIC_ENERGY;
     float __DAMPING;
+    float __FRICTION;
 } _Physic;
 
-int calculateVelocity(_Physic *physic);
+void calculateVelocity(_Physic *physic);
 float calculate_kinetic_energy(_Physic *physic);
 
 #endif // PHYSIC_H

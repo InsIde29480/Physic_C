@@ -7,18 +7,14 @@ void update(SDL_Window *window, SDL_Renderer *renderer) {
 
     // A flag to control the main loop
     int running = 1;
-
-        // Provide the correct path to the font file
-        const char* fontPath = "Sans.ttf"; // Update this path to the correct location of Sans.ttf
-
-        TTF_Font* Sans = TTF_OpenFont(fontPath, 14); // Load the font with size 24
-        if (!Sans) {
-            printf("TTF_OpenFont: %s\n", TTF_GetError());
-            return;
-        }
     
-        SDL_Color White = {255, 255, 255, 255}; // RGB values for white, including alpha
-        
+    TTF_Font* Sans = TTF_OpenFont("Sans.ttf", 13); // Load the font with size 24
+    if (!Sans) {
+        printf("TTF_OpenFont: %s\n", TTF_GetError());
+        return;
+    }
+
+    SDL_Color White = {255, 255, 255, 255};
 
     while (running) {
         while (SDL_PollEvent(&event)) { // Check for events
@@ -31,7 +27,7 @@ void update(SDL_Window *window, SDL_Renderer *renderer) {
                         running = 0;
                         break;
                     case SDLK_SPACE:
-                        addRectangle(&__ARRAY_RECTANGLES, window);
+                        addRectangle(window);
                         break;
                     default:
                         break;
@@ -48,8 +44,6 @@ void update(SDL_Window *window, SDL_Renderer *renderer) {
 
         // Update rectangle position
         for (int i = 0; i < __RECTANGLES_COUNT; i++) {
-            calculateVelocity(&__ARRAY_RECTANGLES[i].physic);
-
             calculatePosition(&__ARRAY_RECTANGLES[i], window);
 
             char buffer[256];
@@ -99,40 +93,54 @@ void update(SDL_Window *window, SDL_Renderer *renderer) {
         // Present the updated frame
         SDL_RenderPresent(renderer);
 
-        SDL_Delay(16); // Delay for ~60 FPS
+        SDL_Delay(6); // Delay for ~144 FPS
     }
+}
+
+// Function to handle cleanup and resource deallocation
+void cleanup(SDL_Window *window, SDL_Renderer *renderer) {
+    if (renderer) SDL_DestroyRenderer(renderer);
+    if (window) SDL_DestroyWindow(window);
+    TTF_Quit();
+    SDL_Quit();
 }
 
 int main() {
     // Initialize SDL2 with video support
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        printf("SDL Init failed: %s\n", SDL_GetError());
+        printf("SDL_Init failed: %s\n", SDL_GetError());
         return 1;
     }
 
     // Initialize SDL_ttf
     if (TTF_Init() == -1) {
-        printf("TTF_Init: %s\n", TTF_GetError());
+        printf("TTF_Init failed: %s\n", TTF_GetError());
         SDL_Quit();
         return 1;
     }
 
-    // Create a window named "Window", centered on the screen with size 800x600
+    // Create an SDL window
     SDL_Window *window = SDL_CreateWindow("Window",
                                           SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                           800, 600, SDL_WINDOW_SHOWN);
-    
-    // Create a renderer linked to the window (index -1 means auto-select best renderer)
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
-    
-    // Call the update function
+    if (!window) {
+        printf("SDL_CreateWindow failed: %s\n", SDL_GetError());
+        cleanup(NULL, NULL);
+        return 1;
+    }
+
+    // Create an SDL renderer
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (!renderer) {
+        printf("SDL_CreateRenderer failed: %s\n", SDL_GetError());
+        cleanup(window, NULL);
+        return 1;
+    }
+
+    // Run the update loop
     update(window, renderer);
 
-    // Cleanup: Destroy renderer and window, then quit SDL
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    TTF_Quit(); // Quit SDL_ttf
-    SDL_Quit();
-    
+    // Clean up and exit
+    cleanup(window, renderer);
     return 0;
 }
