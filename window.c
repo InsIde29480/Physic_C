@@ -39,13 +39,20 @@ void update(SDL_Window *window, SDL_Renderer *renderer) {
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
         SDL_RenderClear(renderer);
 
-        // Set the drawing color to white
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-
         // Update rectangle position
         for (int i = 0; i < __RECTANGLES_COUNT; i++) {
             calculatePosition(&__ARRAY_RECTANGLES[i], window);
 
+            for (int j = i + 1; j < __RECTANGLES_COUNT; j++) {
+            resolveCollision(&__ARRAY_RECTANGLES[i], &__ARRAY_RECTANGLES[j]);
+            }
+
+            // Calculate color based on the rectangle index
+            int colorValue = (i * 255) / __RECTANGLES_COUNT;
+            SDL_SetRenderDrawColor(renderer, colorValue, 255 - colorValue, colorValue % 255, 255); // Gradient from red to green
+
+            SDL_RenderFillRect(renderer, &__ARRAY_RECTANGLES[i].rect);
+/*
             char buffer[256];
             snprintf(buffer, sizeof(buffer), 
                      "Rectangles count: %d\nVelocity X: %f\nVelocity Y: %f\nWeight: %f\nGravity: %f\nKinetic Energy: %f",
@@ -86,14 +93,14 @@ void update(SDL_Window *window, SDL_Renderer *renderer) {
 
             // Free the texture
             SDL_DestroyTexture(Message);
-
+*/
             SDL_RenderFillRect(renderer, &__ARRAY_RECTANGLES[i].rect);
         }
 
         // Present the updated frame
         SDL_RenderPresent(renderer);
 
-        SDL_Delay(6); // Delay for ~144 FPS
+        SDL_Delay(6); // Delay for ~165 FPS
     }
 }
 
